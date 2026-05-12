@@ -1,0 +1,9 @@
+node_modules/
+uploads/*.jpg
+uploads/*.jpeg
+uploads/*.png
+uploads/*.gif
+uploads/*.webp
+uploads/*.heic
+uploads/meta.json
+.env

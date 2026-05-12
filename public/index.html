@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>LGTM</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header>
+    <h1>LGTM</h1>
+    <label class="upload-btn" for="file-input">+ Add Photo</label>
+    <input type="file" id="file-input" accept="image/*" capture="environment" multiple hidden>
+  </header>
+
+  <div id="upload-progress" class="progress-bar" hidden>
+    <div class="progress-fill"></div>
+  </div>
+
+  <main id="gallery" class="gallery"></main>
+
+  <!-- Editor overlay -->
+  <div id="editor-overlay" class="editor-overlay" hidden>
+    <div class="editor-toolbar">
+      <button id="editor-back" class="tool-btn">← Back</button>
+      <div class="mode-tabs">
+        <button id="mode-draw" class="tool-btn mode-btn active">Draw</button>
+        <button id="mode-mirror" class="tool-btn mode-btn">Mirror</button>
+        <button id="mode-filter" class="tool-btn mode-btn">Filter</button>
+      </div>
+      <div id="draw-controls" class="brush-controls">
+        <input type="color" id="brush-color" value="#2b5c8a" title="Brush color">
+        <input type="range" id="brush-size" min="2" max="20" value="5" title="Brush size">
+        <button id="eraser-btn" class="tool-btn">Eraser</button>
+      </div>
+      <div id="mirror-controls" class="mirror-controls" hidden>
+        <label class="filter-label">Segments
+          <input type="range" id="kaleid-segments" min="2" max="12" value="4" title="Number of reflections">
+          <span id="kaleid-count">4</span>
+        </label>
+        <button id="kaleid-apply" class="tool-btn save">Apply</button>
+      </div>
+      <div id="filter-controls" class="filter-controls" hidden>
+        <select id="filter-palette" class="filter-select">
+          <option value="azulejo" selected>Azulejo (Blue &amp; White)</option>
+          <option value="earth">Earth Tones</option>
+          <option value="terracotta">Terracotta</option>
+          <option value="ocean">Ocean &amp; Sand</option>
+          <option value="none">Original</option>
+        </select>
+        <label class="filter-label">Detail
+          <input type="range" id="filter-levels" min="2" max="12" value="4" title="Posterization levels">
+        </label>
+        <button id="filter-apply" class="tool-btn save">Apply Filter</button>
+      </div>
+      <div class="editor-actions">
+        <button id="undo-btn" class="tool-btn">Undo</button>
+        <button id="save-btn" class="tool-btn save">Save</button>
+      </div>
+    </div>
+    <div class="canvas-container">
+      <canvas id="draw-canvas"></canvas>
+      <div id="crop-frame" class="crop-frame"></div>
+    </div>
+  </div>
+
+  <script src="/js/gallery.js"></script>
+  <script src="/js/editor.js"></script>
+</body>
+</html>

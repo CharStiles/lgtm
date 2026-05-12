@@ -1,0 +1,17 @@
+{
+  "name": "lgtm",
+  "version": "1.0.0",
+  "description": "Shared image wall — upload, tile, and draw on photos together",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "multer": "^2.1.1"
+  }
+}
