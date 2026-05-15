@@ -21,4 +21,4 @@ az webapp up --name lgtm --runtime "NODE:22-lts" --sku F1
 
 - Node.js / Express
 - Multer (file uploads)
-- Canvas-based image editor (vanilla JS)
+- Canvas-based image editor (vanilla JS))
