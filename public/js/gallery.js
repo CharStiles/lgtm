@@ -113,6 +113,7 @@
     gallery.innerHTML = images.map(img => `
       <div class="tile" data-id="${img.id}">
         <img src="${img.url}" alt="${img.originalName}" loading="lazy" width="400" height="400">
+        ${img.handle ? `<div class="tile-handle">@${img.handle}</div>` : ''}
         <div class="tile-actions">
           <button class="tile-btn edit-btn" data-id="${img.id}">✏️ Edit</button>
           <button class="tile-btn download-btn" data-url="${img.url}" data-name="${img.originalName}">📥 Save</button>

@@ -68,6 +68,7 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
     filename: req.file.filename,
     originalName: req.file.originalname,
     uploadedAt: new Date().toISOString(),
+    handle: null,
     drawings: null
   };
   saveMeta(meta);
@@ -113,6 +114,7 @@ app.post('/api/canvas/:id', uploadCanvas.single('image'), (req, res) => {
   // Update metadata to point to new file
   data.filename = req.file.filename;
   data.drawings = null; // drawings are baked in now
+  if (req.body.handle) data.handle = req.body.handle;
   saveMeta(meta);
 
   res.json({ ok: true, filename: req.file.filename });

@@ -295,6 +295,39 @@ header h1 .accent {
   margin-bottom: 12px;
 }
 
+/* Handle input in editor */
+.editor-handle-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: auto;
+}
+
+.editor-handle-row .handle-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.editor-handle-row .handle-input {
+  width: 130px;
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  outline: none;
+}
+
+.editor-handle-row .handle-input:focus {
+  border-color: var(--color-yellow);
+  box-shadow: 0 0 0 3px rgba(245, 197, 24, 0.2);
+}
+
+/* Handle input (upload zone - removed, kept for shared styles) */
+
 .upload-drop {
   border: 1.5px dashed var(--color-border);
   border-radius: var(--radius-md);
@@ -466,8 +499,35 @@ header h1 .accent {
   opacity: 1;
 }
 
+.tile:hover .tile-handle {
+  opacity: 1;
+}
+
+/* Handle overlay on tiles */
+.tile-handle {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  pointer-events: none;
+  z-index: 2;
+}
+
 @media (hover: none) {
   .tile-actions {
+    opacity: 1;
+  }
+  .tile-handle {
     opacity: 1;
   }
 }

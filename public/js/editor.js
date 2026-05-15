@@ -48,6 +48,11 @@
   let strokes = [];
   let currentStroke = [];
   let baseImageData = null;
+
+  // Handle input in editor
+  const editorHandleInput = document.getElementById('editor-handle');
+  const savedHandle = localStorage.getItem('lgtm-handle');
+  if (editorHandleInput && savedHandle) editorHandleInput.value = savedHandle;
   let mode = 'draw'; // 'draw', 'mirror', or 'filter'
 
   // Color palettes for posterization
@@ -594,11 +599,16 @@
     saveBtn.disabled = true;
 
     try {
+      // Save handle to localStorage
+      const handle = editorHandleInput ? editorHandleInput.value.trim().replace(/^@/, '') : '';
+      if (handle) localStorage.setItem('lgtm-handle', handle);
+
       // Save the flattened canvas as a new image
       const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
       const file = new File([blob], 'edited.png', { type: 'image/png' });
       const form = new FormData();
       form.append('image', file);
+      if (handle) form.append('handle', handle);
 
       // Upload the edited version, replacing the original
       const res = await fetch(`/api/canvas/${currentImage.id}`, {
