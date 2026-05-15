@@ -630,4 +630,21 @@
       saveBtn.disabled = false;
     }
   });
+
+  // Download current canvas to device
+  const downloadBtn = document.getElementById('download-btn');
+  downloadBtn.addEventListener('click', () => {
+    canvas.toBlob((blob) => {
+      const url = URL.createObjectURL(blob);
+      const name = currentImage ? (currentImage.originalName || 'lisbon-tile.png') : 'lisbon-tile.png';
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Saved to device!', 'success');
+    }, 'image/png');
+  });
 })();

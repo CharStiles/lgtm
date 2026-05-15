@@ -4,30 +4,172 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#1A5C8A">
-  <title>Capture Lisbon · Primer Offsite</title>
+  <title>Capture Lisbon · LGTM Offsite 2026</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@fontsource/mona-sans@5/index.min.css" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <header>
-    <div class="header-title">
-      <h1>Capture <span class="accent">Lisboa</span></h1>
-      <p class="header-subtitle">Primer Design · Offsite 2026</p>
+  <input type="file" id="file-input" accept="image/*" capture="environment" multiple hidden>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-tile-bg"></div>
+
+    <!-- Floating pixel art decorations -->
+    <div class="hero-floater floater-1" aria-hidden="true">
+      <!-- Fire Thumb -->
+      <svg width="64" height="64" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" style="image-rendering: pixelated;">
+        <rect x="6" y="0" width="2" height="1" fill="#a3e635"/>
+        <rect x="4" y="1" width="2" height="1" fill="#a3e635"/>
+        <rect x="8" y="1" width="2" height="1" fill="#a3e635"/>
+        <rect x="3" y="2" width="2" height="1" fill="#a3e635"/>
+        <rect x="9" y="2" width="2" height="1" fill="#a3e635"/>
+        <rect x="5" y="2" width="4" height="1" fill="#d4f97c"/>
+        <rect x="5" y="3" width="1" height="1" fill="#a3e635"/>
+        <rect x="6" y="3" width="4" height="1" fill="#fff"/>
+        <rect x="10" y="3" width="1" height="1" fill="#a3e635"/>
+        <rect x="5" y="4" width="1" height="1" fill="#e5e5e5"/>
+        <rect x="6" y="4" width="4" height="1" fill="#fff"/>
+        <rect x="10" y="4" width="1" height="1" fill="#e5e5e5"/>
+        <rect x="5" y="5" width="1" height="1" fill="#e5e5e5"/>
+        <rect x="6" y="5" width="4" height="5" fill="#fff"/>
+        <rect x="10" y="5" width="1" height="5" fill="#e5e5e5"/>
+        <rect x="5" y="6" width="1" height="4" fill="#e5e5e5"/>
+        <rect x="5" y="10" width="1" height="2" fill="#e5e5e5"/>
+        <rect x="6" y="10" width="4" height="2" fill="#fff"/>
+        <rect x="10" y="10" width="1" height="2" fill="#e5e5e5"/>
+        <rect x="6" y="12" width="4" height="1" fill="#e5e5e5"/>
+      </svg>
     </div>
-    <label class="upload-btn" for="file-input">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-      Add Photo
-    </label>
-    <input type="file" id="file-input" accept="image/*" capture="environment" multiple hidden>
-  </header>
+
+    <div class="hero-floater floater-2" aria-hidden="true">
+      <!-- OctoCat -->
+      <svg width="56" height="56" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" style="image-rendering: pixelated;">
+        <rect x="3" y="0" width="2" height="1" fill="#a3e635"/>
+        <rect x="11" y="0" width="2" height="1" fill="#a3e635"/>
+        <rect x="2" y="1" width="2" height="1" fill="#a3e635"/>
+        <rect x="12" y="1" width="2" height="1" fill="#a3e635"/>
+        <rect x="1" y="2" width="3" height="1" fill="#d4f97c"/>
+        <rect x="12" y="2" width="3" height="1" fill="#d4f97c"/>
+        <rect x="4" y="2" width="8" height="1" fill="#222"/>
+        <rect x="3" y="3" width="10" height="1" fill="#222"/>
+        <rect x="3" y="4" width="2" height="1" fill="#222"/>
+        <rect x="5" y="4" width="2" height="1" fill="#fff"/>
+        <rect x="7" y="4" width="2" height="1" fill="#222"/>
+        <rect x="9" y="4" width="2" height="1" fill="#fff"/>
+        <rect x="11" y="4" width="2" height="1" fill="#222"/>
+        <rect x="3" y="5" width="10" height="1" fill="#222"/>
+        <rect x="4" y="6" width="8" height="1" fill="#222"/>
+        <rect x="5" y="7" width="6" height="1" fill="#222"/>
+      </svg>
+    </div>
+
+    <div class="hero-floater floater-3" aria-hidden="true">
+      <!-- Ducky -->
+      <svg width="52" height="52" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" style="image-rendering: pixelated;">
+        <rect x="5" y="1" width="6" height="1" fill="#7dd3fc"/>
+        <rect x="4" y="2" width="8" height="1" fill="#7dd3fc"/>
+        <rect x="3" y="3" width="2" height="1" fill="#7dd3fc"/>
+        <rect x="5" y="3" width="1" height="1" fill="#222"/>
+        <rect x="6" y="3" width="6" height="1" fill="#7dd3fc"/>
+        <rect x="3" y="4" width="9" height="1" fill="#7dd3fc"/>
+        <rect x="12" y="4" width="2" height="1" fill="#fbbf24"/>
+        <rect x="3" y="5" width="9" height="1" fill="#7dd3fc"/>
+        <rect x="12" y="5" width="2" height="1" fill="#fbbf24"/>
+        <rect x="4" y="6" width="8" height="1" fill="#7dd3fc"/>
+        <rect x="5" y="7" width="6" height="1" fill="#7dd3fc"/>
+        <rect x="4" y="8" width="3" height="1" fill="#a3e635"/>
+        <rect x="5" y="9" width="1" height="1" fill="#a3e635"/>
+        <rect x="8" y="8" width="3" height="1" fill="#a3e635"/>
+        <rect x="9" y="9" width="1" height="1" fill="#a3e635"/>
+      </svg>
+    </div>
+
+    <div class="hero-floater floater-4" aria-hidden="true">
+      <!-- Eyes on fire -->
+      <svg width="48" height="48" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" style="image-rendering: pixelated;">
+        <rect x="5" y="0" width="2" height="1" fill="#a3e635"/>
+        <rect x="9" y="0" width="2" height="1" fill="#a3e635"/>
+        <rect x="4" y="1" width="3" height="1" fill="#d4f97c"/>
+        <rect x="9" y="1" width="3" height="1" fill="#d4f97c"/>
+        <rect x="3" y="2" width="4" height="1" fill="#a3e635"/>
+        <rect x="9" y="2" width="4" height="1" fill="#a3e635"/>
+        <rect x="3" y="3" width="1" height="1" fill="#fff"/>
+        <rect x="4" y="3" width="2" height="1" fill="#222"/>
+        <rect x="6" y="3" width="1" height="1" fill="#fff"/>
+        <rect x="9" y="3" width="1" height="1" fill="#fff"/>
+        <rect x="10" y="3" width="2" height="1" fill="#222"/>
+        <rect x="12" y="3" width="1" height="1" fill="#fff"/>
+        <rect x="3" y="4" width="4" height="1" fill="#fff"/>
+        <rect x="9" y="4" width="4" height="1" fill="#fff"/>
+        <rect x="4" y="5" width="8" height="1" fill="#fff"/>
+        <rect x="5" y="6" width="6" height="1" fill="#fff"/>
+        <rect x="6" y="7" width="4" height="1" fill="#e5e5e5"/>
+      </svg>
+    </div>
+
+    <div class="hero-content">
+      <p class="hero-eyebrow">GitHub Design · LGTM Offsite 2026</p>
+      <h2 class="hero-headline">Capture it. Make a tile. Build the photo gallery together.</h2>
+      <p class="hero-description">Wander Lisbon, photograph the design that catches your eye, and transform it into a Portuguese azulejo. Your tile joins the team mosaic.</p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-label">Snap a photo</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-label">Pick a filter</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-label">Mirror & tile</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-label">Save to gallery</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- UPLOAD ZONE -->
+  <section class="upload-zone">
+    <div class="upload-label">Your photo</div>
+    <div class="upload-drop" id="upload-drop-area">
+      <div class="upload-icon">📸</div>
+      <h3>Drop your Lisboa photo here</h3>
+      <p>Tiles, street art, pastries, architecture — anything goes</p>
+      <div class="or">or</div>
+      <label class="btn-browse" for="file-input-main">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5l2-3h6l2 3h5a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        Browse files
+      </label>
+      <input type="file" id="file-input-main" accept="image/*" capture="environment" multiple hidden>
+    </div>
+  </section>
 
   <div id="upload-progress" class="progress-bar" hidden>
     <div class="progress-fill"></div>
   </div>
 
-  <main id="gallery" class="gallery"></main>
+  <!-- TEAM GALLERY -->
+  <section class="gallery-section">
+    <div class="gallery-header">
+      <div class="gallery-title">
+        <span class="live-dot"></span>
+        Team Gallery
+      </div>
+      <span class="gallery-sub">Auto-updates</span>
+    </div>
+    <main id="gallery" class="gallery"></main>
+  </section>
 
   <!-- Editor overlay -->
   <div id="editor-overlay" class="editor-overlay" hidden>
@@ -66,6 +208,7 @@
       <div class="editor-actions">
         <button id="undo-btn" class="tool-btn">Undo</button>
         <button id="save-btn" class="tool-btn save">Save</button>
+        <button id="download-btn" class="tool-btn" title="Save to camera roll">📥</button>
       </div>
     </div>
     <div class="canvas-container">

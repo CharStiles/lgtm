@@ -2,45 +2,90 @@
 (function () {
   const gallery = document.getElementById('gallery');
   const fileInput = document.getElementById('file-input');
+  const fileInputMain = document.getElementById('file-input-main');
   const progressBar = document.getElementById('upload-progress');
   const progressFill = progressBar.querySelector('.progress-fill');
+  const uploadDrop = document.getElementById('upload-drop-area');
 
-  // Load images on start
+  // Download an image to camera roll / device
+  function downloadImage(url, filename) {
+    fetch(url)
+      .then(res => res.blob())
+      .then(blob => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename || 'lisbon-tile.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+      });
+  }
+
+  window.downloadImage = downloadImage;
+
   loadImages();
-
-  // Poll for new images every 10 seconds (other users' uploads)
   setInterval(loadImages, 10000);
 
-  fileInput.addEventListener('change', async (e) => {
-    const files = Array.from(e.target.files);
+  // Shared upload handler
+  async function handleUpload(files) {
     if (!files.length) return;
-
     progressBar.hidden = false;
     let done = 0;
 
     for (const file of files) {
       const form = new FormData();
       form.append('image', file);
-
       try {
         const res = await fetch('/api/upload', { method: 'POST', body: form });
         if (!res.ok) {
           const err = await res.json();
           alert(`Upload failed: ${err.error}`);
         }
-      } catch (err) {
-        alert('Upload failed — check your connection');
+      } catch {
+        alert('Upload failed \u2014 check your connection');
       }
-
       done++;
       progressFill.style.width = `${(done / files.length) * 100}%`;
     }
 
-    fileInput.value = '';
     progressBar.hidden = true;
     progressFill.style.width = '0%';
     loadImages();
+  }
+
+  // Wire both file inputs
+  fileInput.addEventListener('change', (e) => {
+    void handleUpload(Array.from(e.target.files));
+    fileInput.value = '';
   });
+
+  if (fileInputMain) {
+    fileInputMain.addEventListener('change', (e) => {
+      void handleUpload(Array.from(e.target.files));
+      fileInputMain.value = '';
+    });
+  }
+
+  // Drag and drop on upload zone
+  if (uploadDrop) {
+    uploadDrop.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadDrop.style.borderColor = 'var(--color-yellow)';
+      uploadDrop.style.background = '#FFF7CC';
+    });
+    uploadDrop.addEventListener('dragleave', () => {
+      uploadDrop.style.borderColor = '';
+      uploadDrop.style.background = '';
+    });
+    uploadDrop.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadDrop.style.borderColor = '';
+      uploadDrop.style.background = '';
+      const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+      void handleUpload(files);
+    });
+  }
 
   async function loadImages() {
     try {
@@ -63,7 +108,6 @@
       return;
     }
 
-    // Preserve scroll position
     const scrollY = window.scrollY;
 
     gallery.innerHTML = images.map(img => `
@@ -71,6 +115,7 @@
         <img src="${img.url}" alt="${img.originalName}" loading="lazy" width="400" height="400">
         <div class="tile-actions">
           <button class="tile-btn edit-btn" data-id="${img.id}">✏️ Edit</button>
+          <button class="tile-btn download-btn" data-url="${img.url}" data-name="${img.originalName}">📥 Save</button>
           <button class="tile-btn delete-btn" data-id="${img.id}">🗑</button>
         </div>
       </div>
@@ -78,7 +123,6 @@
 
     window.scrollTo(0, scrollY);
 
-    // Attach edit handlers
     gallery.querySelectorAll('.edit-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const id = btn.dataset.id;
@@ -87,7 +131,12 @@
       });
     });
 
-    // Attach delete handlers
+    gallery.querySelectorAll('.download-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        downloadImage(btn.dataset.url, btn.dataset.name);
+      });
+    });
+
     gallery.querySelectorAll('.delete-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
         if (!confirm('Delete this photo?')) return;
@@ -97,6 +146,5 @@
     });
   }
 
-  // Expose for editor
   window.reloadGallery = loadImages;
 })();
