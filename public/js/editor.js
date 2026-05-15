@@ -13,6 +13,25 @@
   const modeMirrorBtn = document.getElementById('mode-mirror');
   const drawControls = document.getElementById('draw-controls');
   const mirrorControls = document.getElementById('mirror-controls');
+
+  // Toast helper
+  function showToast(message, type = 'success') {
+    let toast = document.querySelector('.toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.setAttribute('aria-live', 'polite');
+      document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.className = `toast ${type}`;
+    requestAnimationFrame(() => {
+      toast.classList.add('visible');
+    });
+    setTimeout(() => {
+      toast.classList.remove('visible');
+    }, 2500);
+  }
   const kaleidSegments = document.getElementById('kaleid-segments');
   const kaleidCount = document.getElementById('kaleid-count');
   const kaleidApply = document.getElementById('kaleid-apply');
@@ -139,7 +158,7 @@
   // Draw the source image onto the canvas at the current pan offset
   function drawImageAtOffset() {
     if (!fullImage) return;
-    ctx.fillStyle = '#f5efe6';
+    ctx.fillStyle = '#FAFAF9';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.save();
     ctx.translate(-panX * imgScale, -panY * imgScale);
@@ -232,7 +251,7 @@
     srcCtx.drawImage(canvas, 0, 0);
 
     // Fill background, then draw kaleidoscope
-    ctx.fillStyle = '#f5efe6';
+    ctx.fillStyle = '#FAFAF9';
     ctx.fillRect(0, 0, w, h);
     const sliceAngle = (Math.PI * 2) / segments;
 
@@ -263,7 +282,7 @@
     if (!commit) {
       // Draw guide lines to show segments
       ctx.save();
-      ctx.strokeStyle = 'rgba(200, 169, 110, 0.5)';
+      ctx.strokeStyle = 'rgba(196, 151, 61, 0.5)';
       ctx.lineWidth = 1;
       ctx.setLineDash([6, 4]);
       for (let i = 0; i < segments; i++) {
@@ -275,7 +294,7 @@
       }
       // Center dot
       ctx.setLineDash([]);
-      ctx.fillStyle = '#c8a96e';
+      ctx.fillStyle = '#C4973D';
       ctx.beginPath();
       ctx.arc(cx, cy, 4, 0, Math.PI * 2);
       ctx.fill();
@@ -571,7 +590,7 @@
   // Save
   saveBtn.addEventListener('click', async () => {
     if (!currentImage) return;
-    saveBtn.textContent = 'Saving...';
+    saveBtn.textContent = 'Saving\u2026';
     saveBtn.disabled = true;
 
     try {
@@ -598,6 +617,7 @@
         currentImage.url = '/uploads/' + result.filename;
       }
 
+      showToast('Saved!', 'success');
       saveBtn.textContent = 'Saved!';
       setTimeout(() => {
         saveBtn.textContent = 'Save';
@@ -605,7 +625,7 @@
       }, 1000);
       window.reloadGallery();
     } catch (err) {
-      alert('Save failed: ' + err.message);
+      showToast('Save failed: ' + err.message, 'error');
       saveBtn.textContent = 'Save';
       saveBtn.disabled = false;
     }

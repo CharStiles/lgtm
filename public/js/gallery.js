@@ -54,7 +54,12 @@
 
   function renderGallery(images) {
     if (!images.length) {
-      gallery.innerHTML = '<p class="empty-state">No photos yet — tap "+ Add Photo" to get started</p>';
+      gallery.innerHTML = `
+        <div class="empty-state">
+          <span class="empty-state-icon">🇵🇹</span>
+          <p class="empty-state-title">The tile wall is empty</p>
+          <p class="empty-state-description">Walk around Lisbon, snap photos of great design, and turn them into Portuguese tile prints.</p>
+        </div>`;
       return;
     }
 
@@ -63,7 +68,7 @@
 
     gallery.innerHTML = images.map(img => `
       <div class="tile" data-id="${img.id}">
-        <img src="${img.url}" alt="${img.originalName}" loading="lazy">
+        <img src="${img.url}" alt="${img.originalName}" loading="lazy" width="400" height="400">
         <div class="tile-actions">
           <button class="tile-btn edit-btn" data-id="${img.id}">✏️ Edit</button>
           <button class="tile-btn delete-btn" data-id="${img.id}">🗑</button>
