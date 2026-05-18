@@ -41,6 +41,12 @@
   const filterPalette = document.getElementById('filter-palette');
   const filterLevels = document.getElementById('filter-levels');
   const filterApplyBtn = document.getElementById('filter-apply');
+  const modeResizeBtn = document.getElementById('mode-resize');
+  const resizeControls = document.getElementById('resize-controls');
+  const resizeDimensions = document.getElementById('resize-dimensions');
+  const resizeLockBtn = document.getElementById('resize-lock');
+  const resizeApplyBtn = document.getElementById('resize-apply');
+  const resizeHandles = document.getElementById('resize-handles');
 
   let currentImage = null;
   let isDrawing = false;
@@ -53,7 +59,9 @@
   const editorHandleInput = document.getElementById('editor-handle');
   const savedHandle = localStorage.getItem('lgtm-handle');
   if (editorHandleInput && savedHandle) editorHandleInput.value = savedHandle;
-  let mode = 'draw'; // 'draw', 'mirror', or 'filter'
+  let mode = 'draw'; // 'draw', 'mirror', 'filter', or 'resize'
+  let resizeLocked = true; // aspect ratio lock
+  let resizePreviewW = 0, resizePreviewH = 0; // dimensions while dragging
 
   // Color palettes for posterization
   const PALETTES = {
@@ -176,6 +184,27 @@
     // No clamping — allow free movement in any direction
   }
 
+  // Replace fullImage with the current canvas so panning uses the committed state
+  function bakeFullImage() {
+    const img = new Image();
+    const w = canvas.width;
+    const h = canvas.height;
+    img.src = canvas.toDataURL();
+    img.onload = () => {
+      fullImage = img;
+      panX = 0;
+      panY = 0;
+      imgScale = 1;
+    };
+    // Set synchronously so panning doesn't break before onload
+    fullImage = img;
+    img.width = w;
+    img.height = h;
+    panX = 0;
+    panY = 0;
+    imgScale = 1;
+  }
+
   // Rebase: bake current pan into baseImageData and reset offset
   function rebasePan() {
     drawImageAtOffset();
@@ -202,9 +231,12 @@
     modeDrawBtn.classList.toggle('active', mode === 'draw');
     modeMirrorBtn.classList.toggle('active', mode === 'mirror');
     modeFilterBtn.classList.toggle('active', mode === 'filter');
+    modeResizeBtn.classList.toggle('active', mode === 'resize');
     drawControls.hidden = mode !== 'draw';
     mirrorControls.hidden = mode !== 'mirror';
     filterControls.hidden = mode !== 'filter';
+    resizeControls.hidden = mode !== 'resize';
+    resizeHandles.hidden = mode !== 'resize';
   }
 
   modeDrawBtn.addEventListener('click', () => {
@@ -224,6 +256,15 @@
     updateModeUI();
     // Show live preview
     applyFilterPreview();
+  });
+
+  modeResizeBtn.addEventListener('click', () => {
+    mode = 'resize';
+    resizePreviewW = canvas.width;
+    resizePreviewH = canvas.height;
+    resizeDimensions.textContent = `${canvas.width} × ${canvas.height}`;
+    updateModeUI();
+    positionResizeHandles();
   });
 
   // --- Kaleidoscope ---
@@ -322,6 +363,7 @@
     renderKaleidoscope(segments, true);
     baseImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     strokes = [];
+    bakeFullImage();
   });
 
   // Drawing & panning — unified mouse/touch
@@ -559,6 +601,7 @@
     ctx.putImageData(filtered, 0, 0);
     baseImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     strokes = [];
+    bakeFullImage();
   }
 
   // Live preview when changing palette or levels
@@ -570,15 +613,149 @@
     updateModeUI();
   });
 
+  // --- Resize (corner drag) ---
+  resizeLockBtn.addEventListener('click', () => {
+    resizeLocked = !resizeLocked;
+    resizeLockBtn.classList.toggle('active', resizeLocked);
+  });
+
+  function positionResizeHandles() {
+    if (mode !== 'resize') return;
+    const rect = canvas.getBoundingClientRect();
+    const container = canvas.parentElement.getBoundingClientRect();
+    const offsetX = rect.left - container.left;
+    const offsetY = rect.top - container.top;
+
+    resizeHandles.style.left = offsetX + 'px';
+    resizeHandles.style.top = offsetY + 'px';
+    resizeHandles.style.width = rect.width + 'px';
+    resizeHandles.style.height = rect.height + 'px';
+  }
+
+  let resizeDragDir = null;
+  let resizeDragStartX = 0, resizeDragStartY = 0;
+  let resizeDragStartW = 0, resizeDragStartH = 0;
+
+  resizeHandles.addEventListener('mousedown', startResizeDrag);
+  resizeHandles.addEventListener('touchstart', startResizeDrag, { passive: false });
+
+  function startResizeDrag(e) {
+    const handle = e.target.closest('.resize-handle');
+    if (!handle) return;
+    e.preventDefault();
+    resizeDragDir = handle.dataset.dir;
+    const pos = e.touches ? e.touches[0] : e;
+    resizeDragStartX = pos.clientX;
+    resizeDragStartY = pos.clientY;
+    resizeDragStartW = canvas.width;
+    resizeDragStartH = canvas.height;
+
+    document.addEventListener('mousemove', moveResizeDrag);
+    document.addEventListener('mouseup', endResizeDrag);
+    document.addEventListener('touchmove', moveResizeDrag, { passive: false });
+    document.addEventListener('touchend', endResizeDrag);
+  }
+
+  function moveResizeDrag(e) {
+    if (!resizeDragDir) return;
+    e.preventDefault();
+    const pos = e.touches ? e.touches[0] : e;
+    let dx = pos.clientX - resizeDragStartX;
+    let dy = pos.clientY - resizeDragStartY;
+
+    // Invert for top/left handles
+    if (resizeDragDir.includes('w')) dx = -dx;
+    if (resizeDragDir.includes('n')) dy = -dy;
+
+    const container = canvas.parentElement;
+    const scaleX = resizeDragStartW / canvas.getBoundingClientRect().width;
+    const scaleY = resizeDragStartH / canvas.getBoundingClientRect().height;
+
+    let newW = Math.max(16, Math.round(resizeDragStartW + dx * scaleX));
+    let newH = Math.max(16, Math.round(resizeDragStartH + dy * scaleY));
+
+    if (resizeLocked) {
+      const aspect = resizeDragStartW / resizeDragStartH;
+      // Use the larger delta to drive both
+      if (Math.abs(dx) > Math.abs(dy)) {
+        newH = Math.max(16, Math.round(newW / aspect));
+      } else {
+        newW = Math.max(16, Math.round(newH * aspect));
+      }
+    }
+
+    resizePreviewW = newW;
+    resizePreviewH = newH;
+    resizeDimensions.textContent = `${newW} × ${newH}`;
+
+    // Live preview: resize the canvas display (CSS only, not the actual canvas buffer)
+    const maxW = container.clientWidth;
+    const maxH = container.clientHeight;
+    const displayScale = Math.min(maxW / newW, maxH / newH, 1);
+    canvas.style.width = (newW * displayScale) + 'px';
+    canvas.style.height = (newH * displayScale) + 'px';
+    positionResizeHandles();
+  }
+
+  function endResizeDrag() {
+    resizeDragDir = null;
+    document.removeEventListener('mousemove', moveResizeDrag);
+    document.removeEventListener('mouseup', endResizeDrag);
+    document.removeEventListener('touchmove', moveResizeDrag);
+    document.removeEventListener('touchend', endResizeDrag);
+  }
+
+  resizeApplyBtn.addEventListener('click', () => {
+    const newW = resizePreviewW;
+    const newH = resizePreviewH;
+    if (!newW || !newH || newW < 16 || newH < 16) return;
+
+    // Save undo snapshot
+    undoStack.push({
+      baseImageData: new ImageData(
+        new Uint8ClampedArray(baseImageData.data),
+        baseImageData.width,
+        baseImageData.height
+      ),
+      strokes: JSON.parse(JSON.stringify(strokes))
+    });
+
+    // Render current state to a temp canvas, then resize
+    replayStrokes();
+    const tmpCanvas = document.createElement('canvas');
+    tmpCanvas.width = canvas.width;
+    tmpCanvas.height = canvas.height;
+    tmpCanvas.getContext('2d').drawImage(canvas, 0, 0);
+
+    canvas.width = newW;
+    canvas.height = newH;
+    canvas.style.width = '';
+    canvas.style.height = '';
+    ctx.drawImage(tmpCanvas, 0, 0, tmpCanvas.width, tmpCanvas.height, 0, 0, newW, newH);
+    baseImageData = ctx.getImageData(0, 0, newW, newH);
+    strokes = [];
+
+    positionCropFrame();
+    positionResizeHandles();
+    showToast(`Resized to ${newW}×${newH}`, 'success');
+  });
+
   // Undo
   undoBtn.addEventListener('click', () => {
-    if ((mode === 'mirror' || mode === 'filter') && undoStack.length > 0) {
+    if ((mode === 'mirror' || mode === 'filter' || mode === 'resize') && undoStack.length > 0) {
       const prev = undoStack.pop();
       baseImageData = prev.baseImageData;
       strokes = prev.strokes;
+      canvas.width = baseImageData.width;
+      canvas.height = baseImageData.height;
       replayStrokes();
       if (mode === 'mirror') applyKaleidPreview();
       if (mode === 'filter') applyFilterPreview();
+      if (mode === 'resize') {
+        resizeWidthInput.value = canvas.width;
+        resizeHeightInput.value = canvas.height;
+      }
+      positionCropFrame();
       return;
     }
     if (strokes.length === 0) return;
@@ -602,6 +779,12 @@
       // Save handle to localStorage
       const handle = editorHandleInput ? editorHandleInput.value.trim().replace(/^@/, '') : '';
       if (handle) localStorage.setItem('lgtm-handle', handle);
+
+      // If in filter mode, commit the filter preview before capturing
+      if (mode === 'filter') {
+        const filtered = getFilteredImageData();
+        ctx.putImageData(filtered, 0, 0);
+      }
 
       // Save the flattened canvas as a new image
       const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));

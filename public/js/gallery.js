@@ -108,7 +108,13 @@
     }
   }
 
+  let lastImagesJSON = '';
+
   function renderGallery(images) {
+    const newJSON = JSON.stringify(images);
+    if (newJSON === lastImagesJSON) return;
+    lastImagesJSON = newJSON;
+
     if (!images.length) {
       gallery.innerHTML = `
         <div class="empty-state">

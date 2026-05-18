@@ -689,6 +689,27 @@ header h1 .accent {
 
 .filter-controls[hidden] { display: none; }
 
+.resize-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  justify-content: center;
+}
+
+.resize-controls[hidden] { display: none; }
+
+.resize-input {
+  width: 70px;
+  padding: 6px 8px;
+  background: var(--color-azulejo-dark);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-family: var(--font-body);
+}
+
 .filter-select {
   padding: 8px 12px;
   background: var(--color-azulejo-dark);

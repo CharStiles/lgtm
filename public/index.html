@@ -179,6 +179,7 @@
         <button id="mode-draw" class="tool-btn mode-btn active">Draw</button>
         <button id="mode-mirror" class="tool-btn mode-btn">Mirror</button>
         <button id="mode-filter" class="tool-btn mode-btn">Filter</button>
+        <button id="mode-resize" class="tool-btn mode-btn">Resize</button>
       </div>
       <div id="draw-controls" class="brush-controls">
         <input type="color" id="brush-color" value="#2b5c8a" title="Brush color">
@@ -205,6 +206,11 @@
         </label>
         <button id="filter-apply" class="tool-btn save">Apply Filter</button>
       </div>
+      <div id="resize-controls" class="resize-controls" hidden>
+        <span id="resize-dimensions" class="resize-dimensions"></span>
+        <button id="resize-lock" class="tool-btn active" title="Lock aspect ratio">🔗</button>
+        <button id="resize-apply" class="tool-btn save">Apply</button>
+      </div>
       <div class="editor-actions">
         <div class="editor-handle-row">
           <label for="editor-handle" class="handle-label">@</label>
@@ -218,6 +224,12 @@
     <div class="canvas-container">
       <canvas id="draw-canvas"></canvas>
       <div id="crop-frame" class="crop-frame"></div>
+      <div id="resize-handles" class="resize-handles" hidden>
+        <div class="resize-handle" data-dir="nw"></div>
+        <div class="resize-handle" data-dir="ne"></div>
+        <div class="resize-handle" data-dir="sw"></div>
+        <div class="resize-handle" data-dir="se"></div>
+      </div>
     </div>
   </div>
 
