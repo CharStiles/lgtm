@@ -7,6 +7,17 @@
   const progressFill = progressBar.querySelector('.progress-fill');
   const uploadDrop = document.getElementById('upload-drop-area');
 
+  // Persistent client identifier — scoped to this browser
+  function getClientId() {
+    let id = localStorage.getItem('lgtm-client-id');
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem('lgtm-client-id', id);
+    }
+    return id;
+  }
+  const CLIENT_ID = getClientId();
+
   // Download an image to camera roll / device
   function downloadImage(url, filename) {
     fetch(url)
@@ -37,7 +48,7 @@
       const form = new FormData();
       form.append('image', file);
       try {
-        const res = await fetch('/api/upload', { method: 'POST', body: form });
+        const res = await fetch('/api/upload', { method: 'POST', body: form, headers: { 'x-client-id': CLIENT_ID } });
         if (!res.ok) {
           const err = await res.json();
           alert(`Upload failed: ${err.error}`);
@@ -110,17 +121,19 @@
 
     const scrollY = window.scrollY;
 
-    gallery.innerHTML = images.map(img => `
+    gallery.innerHTML = images.map(img => {
+      const owned = img.creatorId === CLIENT_ID;
+      return `
       <div class="tile" data-id="${img.id}">
         <img src="${img.url}" alt="${img.originalName}" loading="lazy" width="400" height="400">
         ${img.handle ? `<div class="tile-handle">@${img.handle}</div>` : ''}
         <div class="tile-actions">
-          <button class="tile-btn edit-btn" data-id="${img.id}">✏️ Edit</button>
+          ${owned ? `<button class="tile-btn edit-btn" data-id="${img.id}">✏️ Edit</button>` : ''}
           <button class="tile-btn download-btn" data-url="${img.url}" data-name="${img.originalName}">📥 Save</button>
-          <button class="tile-btn delete-btn" data-id="${img.id}">🗑</button>
+          ${owned ? `<button class="tile-btn delete-btn" data-id="${img.id}">🗑</button>` : ''}
         </div>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
 
     window.scrollTo(0, scrollY);
 
@@ -141,7 +154,7 @@
     gallery.querySelectorAll('.delete-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
         if (!confirm('Delete this photo?')) return;
-        await fetch(`/api/images/${btn.dataset.id}`, { method: 'DELETE' });
+        await fetch(`/api/images/${btn.dataset.id}`, { method: 'DELETE', headers: { 'x-client-id': CLIENT_ID } });
         loadImages();
       });
     });

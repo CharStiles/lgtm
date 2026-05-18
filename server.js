@@ -69,7 +69,8 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
     originalName: req.file.originalname,
     uploadedAt: new Date().toISOString(),
     handle: null,
-    drawings: null
+    drawings: null,
+    creatorId: req.headers['x-client-id'] || null
   };
   saveMeta(meta);
 
@@ -107,6 +108,12 @@ app.post('/api/canvas/:id', uploadCanvas.single('image'), (req, res) => {
   if (!data) return res.status(404).json({ error: 'Image not found' });
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
+  // Only the creator can edit
+  const clientId = req.headers['x-client-id'];
+  if (!data.creatorId || clientId !== data.creatorId) {
+    return res.status(403).json({ error: 'You can only edit your own images' });
+  }
+
   // Remove old file
   const oldPath = path.join(DATA_DIR, data.filename);
   try { fs.unlinkSync(oldPath); } catch {}
@@ -133,6 +140,12 @@ app.delete('/api/images/:id', (req, res) => {
   const meta = loadMeta();
   const data = meta[req.params.id];
   if (!data) return res.status(404).json({ error: 'Image not found' });
+
+  // Only the creator can delete
+  const clientId = req.headers['x-client-id'];
+  if (!data.creatorId || clientId !== data.creatorId) {
+    return res.status(403).json({ error: 'You can only delete your own images' });
+  }
 
   // Remove file
   const filePath = path.join(DATA_DIR, data.filename);

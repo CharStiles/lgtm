@@ -613,7 +613,8 @@
       // Upload the edited version, replacing the original
       const res = await fetch(`/api/canvas/${currentImage.id}`, {
         method: 'POST',
-        body: form
+        body: form,
+        headers: { 'x-client-id': localStorage.getItem('lgtm-client-id') || '' }
       });
 
       if (!res.ok) {
