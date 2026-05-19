@@ -105,6 +105,7 @@
   // Open editor
   window.openEditor = function (imgData) {
     currentImage = imgData;
+    window.currentEditorImage = currentImage;
     overlay.hidden = false;
     document.body.style.overflow = 'hidden';
     mode = 'draw';
@@ -721,6 +722,13 @@
       form.append('image', file);
       if (handle) form.append('handle', handle);
       if (caption) form.append('caption', caption);
+
+      if (!currentImage.id) {
+        alert('Still uploading \u2014 try saving again in a moment');
+        saveBtn.textContent = 'Save';
+        saveBtn.disabled = false;
+        return;
+      }
 
       const res = await fetch(`/api/canvas/${currentImage.id}`, {
         method: 'POST',

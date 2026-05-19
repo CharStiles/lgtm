@@ -41,44 +41,43 @@
   // Shared upload handler
   async function handleUpload(files) {
     if (!files.length) return;
-    progressBar.hidden = false;
-    let done = 0;
-    let lastUploaded = null;
-    const localFile = files.length === 1 ? files[0] : null;
 
-    for (const file of files) {
-      const form = new FormData();
-      form.append('image', file);
-      try {
-        const res = await fetch('/api/upload', { method: 'POST', body: form, headers: { 'x-client-id': CLIENT_ID } });
-        if (!res.ok) {
-          const err = await res.json();
-          alert(`Upload failed: ${err.error}`);
-        } else {
-          lastUploaded = await res.json();
-        }
-      } catch {
-        alert('Upload failed \u2014 check your connection');
-      }
-      done++;
-      progressFill.style.width = `${(done / files.length) * 100}%`;
-    }
+    const localFile = files[0];
 
-    progressBar.hidden = true;
-    progressFill.style.width = '0%';
-    loadImages();
-
-    // Auto-open editor for single uploads
-    if (files.length === 1 && lastUploaded && window.openEditor) {
+    // Open editor immediately with local file
+    if (window.openEditor) {
+      const localUrl = URL.createObjectURL(localFile);
+      // Start upload in background, open editor now
       const imgData = {
-        id: lastUploaded.id,
-        filename: lastUploaded.filename,
-        url: localFile ? URL.createObjectURL(localFile) : `/uploads/${lastUploaded.filename}`,
-        originalName: localFile ? localFile.name : lastUploaded.filename,
+        id: null,
+        filename: null,
+        url: localUrl,
+        originalName: localFile.name,
         handle: null,
         caption: null
       };
       window.openEditor(imgData);
+
+      // Upload in background
+      const form = new FormData();
+      form.append('image', localFile);
+      try {
+        const res = await fetch('/api/upload', { method: 'POST', body: form, headers: { 'x-client-id': CLIENT_ID } });
+        if (res.ok) {
+          const result = await res.json();
+          // Patch currentImage with server ID so Save works
+          if (window.currentEditorImage) {
+            window.currentEditorImage.id = result.id;
+            window.currentEditorImage.filename = result.filename;
+          }
+          loadImages();
+        } else {
+          const err = await res.json();
+          showToast ? showToast(`Upload failed: ${err.error}`, 'error') : alert(`Upload failed: ${err.error}`);
+        }
+      } catch {
+        alert('Upload failed \u2014 check your connection');
+      }
     }
   }
 
