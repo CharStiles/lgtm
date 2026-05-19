@@ -147,7 +147,6 @@
         ${img.handle || img.caption ? `<div class="tile-meta">${img.handle ? `<span class="tile-handle">@${img.handle}</span>` : ''}${img.caption ? `<span class="tile-caption">${img.caption}</span>` : ''}</div>` : ''}
         ${owned ? `<div class="tile-actions">
           <button class="tile-btn edit-btn" data-id="${img.id}">Edit</button>
-          <button class="tile-btn download-btn" data-url="${img.url}" data-name="${img.originalName}">Save</button>
           <button class="tile-btn delete-btn" data-id="${img.id}">Delete</button>
         </div>` : ''}
       </div>`;
@@ -160,12 +159,6 @@
         const id = btn.dataset.id;
         const img = images.find(i => i.id === id);
         if (img) window.openEditor(img);
-      });
-    });
-
-    gallery.querySelectorAll('.download-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        downloadImage(btn.dataset.url, btn.dataset.name);
       });
     });
 
