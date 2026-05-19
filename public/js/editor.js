@@ -158,6 +158,8 @@
     strokes = [];
     currentStroke = [];
     undoStack = [];
+    currentScale = 1;
+    canvas.style.transform = '';
     cropFrame.style.display = 'none';
   }
 
@@ -381,9 +383,10 @@
     pointerCache.push(e);
 
     if (pointerCache.length === 2) {
-      // Start pinch
+      // Start pinch — cancel any in-progress pan or draw
       isPinching = true;
       isDrawing = false;
+      isPanning = false;
       currentStroke = [];
       pinchStartDist = getPointerDist();
       pinchStartScale = currentScale;
@@ -459,37 +462,7 @@
       if (pointerCache.length > 0) return; // still have fingers down
       isPinching = false;
       pinchJustEnded = true;
-
-      // Commit the scale — resize the actual canvas
-      if (Math.abs(currentScale - 1) > 0.01) {
-        const newW = Math.max(16, Math.round(canvas.width * currentScale));
-        const newH = Math.max(16, Math.round(canvas.height * currentScale));
-
-        undoStack.push({
-          baseImageData: new ImageData(
-            new Uint8ClampedArray(baseImageData.data),
-            baseImageData.width,
-            baseImageData.height
-          ),
-          strokes: JSON.parse(JSON.stringify(strokes))
-        });
-
-        replayStrokes();
-        const tmpCanvas = document.createElement('canvas');
-        tmpCanvas.width = canvas.width;
-        tmpCanvas.height = canvas.height;
-        tmpCanvas.getContext('2d').drawImage(canvas, 0, 0);
-
-        canvas.width = newW;
-        canvas.height = newH;
-        ctx.drawImage(tmpCanvas, 0, 0, tmpCanvas.width, tmpCanvas.height, 0, 0, newW, newH);
-        baseImageData = ctx.getImageData(0, 0, newW, newH);
-        strokes = [];
-        positionCropFrame();
-      }
-
-      canvas.style.transform = '';
-      currentScale = 1;
+      // Keep currentScale applied — don't commit to buffer until Save
       return;
     }
 
@@ -704,7 +677,18 @@
         ctx.putImageData(filtered, 0, 0);
       }
 
-      const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+      // Export at the pinch-scaled size
+      let exportCanvas = canvas;
+      if (Math.abs(currentScale - 1) > 0.01) {
+        const scaledW = Math.round(canvas.width * currentScale);
+        const scaledH = Math.round(canvas.height * currentScale);
+        exportCanvas = document.createElement('canvas');
+        exportCanvas.width = scaledW;
+        exportCanvas.height = scaledH;
+        exportCanvas.getContext('2d').drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, scaledW, scaledH);
+      }
+
+      const blob = await new Promise(r => exportCanvas.toBlob(r, 'image/png'));
       const file = new File([blob], 'edited.png', { type: 'image/png' });
       const form = new FormData();
       form.append('image', file);
@@ -726,6 +710,10 @@
       if (result.filename) {
         currentImage.url = '/uploads/' + result.filename;
       }
+
+      // Reset pinch scale
+      currentScale = 1;
+      canvas.style.transform = '';
 
       saveBtn.textContent = 'Saved!';
       setTimeout(() => {
