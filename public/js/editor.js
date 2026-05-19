@@ -159,6 +159,8 @@
     currentStroke = [];
     undoStack = [];
     currentScale = 1;
+    translateX = 0;
+    translateY = 0;
     canvas.style.transform = '';
     cropFrame.style.display = 'none';
   }
@@ -356,8 +358,13 @@
   let pinchStartDist = 0;
   let pinchStartScale = 1;
   let currentScale = 1; // cumulative scale applied to canvas
+  let translateX = 0, translateY = 0; // CSS pan offset in px
   let isPinching = false;
   let pinchJustEnded = false;
+
+  function updateCanvasTransform() {
+    canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentScale})`;
+  }
 
   function getPointerDist() {
     const dx = pointerCache[0].clientX - pointerCache[1].clientX;
@@ -411,8 +418,12 @@
         size: parseInt(sizeInput.value)
       });
     } else {
-      // mirror/filter: drag to pan
-      startPan(e);
+      // mirror/filter: single-finger pan via CSS translate
+      isPanning = true;
+      panStartX = e.clientX;
+      panStartY = e.clientY;
+      panStartOffsetX = translateX;
+      panStartOffsetY = translateY;
     }
   });
 
@@ -426,7 +437,7 @@
       const dist = getPointerDist();
       const scale = (dist / pinchStartDist) * pinchStartScale;
       currentScale = Math.max(0.1, scale);
-      canvas.style.transform = `scale(${currentScale})`;
+      updateCanvasTransform();
       return;
     }
 
@@ -484,26 +495,18 @@
   function startPan(e) {
     isPanning = true;
     isDrawing = false;
-    const pos = getClientPos(e);
-    panStartX = pos.x;
-    panStartY = pos.y;
-    panStartOffsetX = panX;
-    panStartOffsetY = panY;
+    panStartX = e.clientX;
+    panStartY = e.clientY;
+    panStartOffsetX = translateX;
+    panStartOffsetY = translateY;
   }
 
   function movePan(e) {
     if (!isPanning) return;
     e.preventDefault();
-    const pos = getClientPos(e);
-    const dx = (pos.x - panStartX) / imgScale;
-    const dy = (pos.y - panStartY) / imgScale;
-    panX = panStartOffsetX - dx;
-    panY = panStartOffsetY - dy;
-    clampPan();
-    rebasePan();
-
-    if (mode === 'mirror') applyKaleidPreview();
-    if (mode === 'filter') applyFilterPreview();
+    translateX = panStartOffsetX + (e.clientX - panStartX);
+    translateY = panStartOffsetY + (e.clientY - panStartY);
+    updateCanvasTransform();
   }
 
   function endPan() {
@@ -711,8 +714,10 @@
         currentImage.url = '/uploads/' + result.filename;
       }
 
-      // Reset pinch scale
+      // Reset pinch scale and pan
       currentScale = 1;
+      translateX = 0;
+      translateY = 0;
       canvas.style.transform = '';
 
       saveBtn.textContent = 'Saved!';
