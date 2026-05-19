@@ -714,12 +714,6 @@
         currentImage.url = '/uploads/' + result.filename;
       }
 
-      // Reset pinch scale and pan
-      currentScale = 1;
-      translateX = 0;
-      translateY = 0;
-      canvas.style.transform = '';
-
       saveBtn.textContent = 'Saved!';
       setTimeout(() => {
         saveBtn.textContent = 'Save';
