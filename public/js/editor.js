@@ -40,12 +40,6 @@
   const filterPalette = document.getElementById('filter-palette');
   const filterLevels = document.getElementById('filter-levels');
   const filterApplyBtn = document.getElementById('filter-apply');
-  const modeResizeBtn = document.getElementById('mode-resize');
-  const resizeControls = document.getElementById('resize-controls');
-  const resizeDimensions = document.getElementById('resize-dimensions');
-  const resizeLockBtn = document.getElementById('resize-lock');
-  const resizeApplyBtn = document.getElementById('resize-apply');
-  const resizeHandles = document.getElementById('resize-handles');
 
   let currentImage = null;
   let isDrawing = false;
@@ -59,11 +53,7 @@
   const editorCaptionInput = document.getElementById('editor-caption');
   const savedHandle = localStorage.getItem('lgtm-handle');
   if (editorHandleInput && savedHandle) editorHandleInput.value = savedHandle;
-  if (editorHandleInput) editorHandleInput.addEventListener('input', () => scheduleAutosave());
-  if (editorCaptionInput) editorCaptionInput.addEventListener('input', () => scheduleAutosave());
-  let mode = 'draw'; // 'draw', 'mirror', 'filter', or 'resize'
-  let resizeLocked = true; // aspect ratio lock
-  let resizePreviewW = 0, resizePreviewH = 0; // dimensions while dragging
+  let mode = 'draw'; // 'draw', 'mirror', or 'filter'
 
   // Color palettes for posterization
   const PALETTES = {
@@ -161,12 +151,6 @@
   };
 
   function closeEditor() {
-    // Flush pending autosave before clearing state
-    if (autosaveTimer) {
-      clearTimeout(autosaveTimer);
-      autosaveTimer = null;
-    }
-    if (currentImage) doAutosave();
     overlay.hidden = true;
     document.body.style.overflow = '';
     currentImage = null;
@@ -242,12 +226,9 @@
     modeDrawBtn.classList.toggle('active', mode === 'draw');
     modeMirrorBtn.classList.toggle('active', mode === 'mirror');
     modeFilterBtn.classList.toggle('active', mode === 'filter');
-    modeResizeBtn.classList.toggle('active', mode === 'resize');
     drawControls.hidden = mode !== 'draw';
     mirrorControls.hidden = mode !== 'mirror';
     filterControls.hidden = mode !== 'filter';
-    resizeControls.hidden = mode !== 'resize';
-    resizeHandles.hidden = mode !== 'resize';
   }
 
   modeDrawBtn.addEventListener('click', () => {
@@ -267,15 +248,6 @@
     updateModeUI();
     // Show live preview
     applyFilterPreview();
-  });
-
-  modeResizeBtn.addEventListener('click', () => {
-    mode = 'resize';
-    resizePreviewW = canvas.width;
-    resizePreviewH = canvas.height;
-    resizeDimensions.textContent = `${canvas.width} × ${canvas.height}`;
-    updateModeUI();
-    positionResizeHandles();
   });
 
   // --- Kaleidoscope ---
@@ -375,52 +347,54 @@
     baseImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     strokes = [];
     bakeFullImage();
-    scheduleAutosave();
   });
 
-  // Drawing & panning — unified mouse/touch
+  // Drawing & gestures — pointer events for pinch-to-scale everywhere
+  const pointerCache = [];
   let pinchStartDist = 0;
-  let pinchStartW = 0, pinchStartH = 0;
+  let pinchStartScale = 1;
+  let currentScale = 1; // cumulative scale applied to canvas
   let isPinching = false;
-  let pinchJustEnded = false; // guard against single-finger events after pinch
+  let pinchJustEnded = false;
 
-  function getTouchDist(e) {
-    const t = e.touches;
-    const dx = t[0].clientX - t[1].clientX;
-    const dy = t[0].clientY - t[1].clientY;
+  function getPointerDist() {
+    const dx = pointerCache[0].clientX - pointerCache[1].clientX;
+    const dy = pointerCache[0].clientY - pointerCache[1].clientY;
     return Math.sqrt(dx * dx + dy * dy);
   }
 
   function getPos(e) {
     const rect = canvas.getBoundingClientRect();
-    const touch = e.touches ? e.touches[0] : e;
     return {
-      x: (touch.clientX - rect.left) * (canvas.width / rect.width),
-      y: (touch.clientY - rect.top) * (canvas.height / rect.height)
+      x: (e.clientX - rect.left) * (canvas.width / rect.width),
+      y: (e.clientY - rect.top) * (canvas.height / rect.height)
     };
   }
 
   function getClientPos(e) {
-    const touch = e.touches ? e.touches[0] : e;
-    return { x: touch.clientX, y: touch.clientY };
+    return { x: e.clientX, y: e.clientY };
   }
 
-  function startInteraction(e) {
+  canvas.addEventListener('pointerdown', (e) => {
     e.preventDefault();
+    canvas.setPointerCapture(e.pointerId);
+    pointerCache.push(e);
 
-    // Ignore single-finger start right after a pinch (finger still down)
-    if (pinchJustEnded) {
-      pinchJustEnded = false;
+    if (pointerCache.length === 2) {
+      // Start pinch
+      isPinching = true;
+      isDrawing = false;
+      currentStroke = [];
+      pinchStartDist = getPointerDist();
+      pinchStartScale = currentScale;
       return;
     }
 
-    // Two-finger touch = pinch to resize
-    if (e.touches && e.touches.length >= 2) {
-      isPinching = true;
-      isDrawing = false;
-      pinchStartDist = getTouchDist(e);
-      pinchStartW = canvas.width;
-      pinchStartH = canvas.height;
+    if (pointerCache.length > 2) return;
+
+    // Single pointer — ignore if pinch just ended
+    if (pinchJustEnded) {
+      pinchJustEnded = false;
       return;
     }
 
@@ -437,29 +411,22 @@
       // mirror/filter: drag to pan
       startPan(e);
     }
-  }
+  });
 
-  function moveInteraction(e) {
-    // Two-finger touch = pinch to resize
-    if (e.touches && e.touches.length >= 2 && isPinching) {
+  canvas.addEventListener('pointermove', (e) => {
+    // Update pointer in cache
+    const idx = pointerCache.findIndex(p => p.pointerId === e.pointerId);
+    if (idx >= 0) pointerCache[idx] = e;
+
+    if (isPinching && pointerCache.length >= 2) {
       e.preventDefault();
-      const dist = getTouchDist(e);
-      const scale = dist / pinchStartDist;
-      const newW = Math.max(16, Math.round(pinchStartW * scale));
-      const newH = Math.max(16, Math.round(pinchStartH * scale));
-
-      const container = canvas.parentElement;
-      const maxW = container.clientWidth;
-      const maxH = container.clientHeight;
-      const displayScale = Math.min(maxW / newW, maxH / newH, 1);
-      canvas.style.width = (newW * displayScale) + 'px';
-      canvas.style.height = (newH * displayScale) + 'px';
-      resizePreviewW = newW;
-      resizePreviewH = newH;
+      const dist = getPointerDist();
+      const scale = (dist / pinchStartDist) * pinchStartScale;
+      currentScale = Math.max(0.1, scale);
+      canvas.style.transform = `scale(${currentScale})`;
       return;
     }
 
-    // If pinching but only one finger left, ignore movement
     if (isPinching) return;
 
     if (isPanning) {
@@ -479,18 +446,25 @@
       currentStroke.push(point);
       drawSegment(currentStroke[currentStroke.length - 2], point);
     }
-  }
+  });
 
-  function endInteraction(e) {
+  canvas.addEventListener('pointerup', handlePointerUp);
+  canvas.addEventListener('pointercancel', handlePointerUp);
+
+  function handlePointerUp(e) {
+    const idx = pointerCache.findIndex(p => p.pointerId === e.pointerId);
+    if (idx >= 0) pointerCache.splice(idx, 1);
+
     if (isPinching) {
-      // If fingers still touching, don't commit yet
-      if (e.touches && e.touches.length > 0) return;
+      if (pointerCache.length > 0) return; // still have fingers down
       isPinching = false;
       pinchJustEnded = true;
-      // Commit the pinch resize
-      const newW = resizePreviewW;
-      const newH = resizePreviewH;
-      if (newW && newH && (newW !== canvas.width || newH !== canvas.height)) {
+
+      // Commit the scale — resize the actual canvas
+      if (Math.abs(currentScale - 1) > 0.01) {
+        const newW = Math.max(16, Math.round(canvas.width * currentScale));
+        const newH = Math.max(16, Math.round(canvas.height * currentScale));
+
         undoStack.push({
           baseImageData: new ImageData(
             new Uint8ClampedArray(baseImageData.data),
@@ -508,17 +482,14 @@
 
         canvas.width = newW;
         canvas.height = newH;
-        canvas.style.width = '';
-        canvas.style.height = '';
         ctx.drawImage(tmpCanvas, 0, 0, tmpCanvas.width, tmpCanvas.height, 0, 0, newW, newH);
         baseImageData = ctx.getImageData(0, 0, newW, newH);
         strokes = [];
         positionCropFrame();
-        scheduleAutosave();
-      } else {
-        canvas.style.width = '';
-        canvas.style.height = '';
       }
+
+      canvas.style.transform = '';
+      currentScale = 1;
       return;
     }
 
@@ -529,12 +500,10 @@
 
     if (mode === 'draw') {
       if (!isDrawing) return;
-      e.preventDefault();
       isDrawing = false;
       if (currentStroke.length > 0) {
         strokes.push([...currentStroke]);
         currentStroke = [];
-        scheduleAutosave();
       }
     }
   }
@@ -567,18 +536,6 @@
   function endPan() {
     isPanning = false;
   }
-
-  // Mouse events
-  canvas.addEventListener('mousedown', startInteraction);
-  canvas.addEventListener('mousemove', moveInteraction);
-  canvas.addEventListener('mouseup', endInteraction);
-  canvas.addEventListener('mouseleave', endInteraction);
-
-  // Touch events
-  canvas.addEventListener('touchstart', startInteraction, { passive: false });
-  canvas.addEventListener('touchmove', moveInteraction, { passive: false });
-  canvas.addEventListener('touchend', endInteraction, { passive: false });
-  canvas.addEventListener('touchcancel', endInteraction, { passive: false });
 
   function drawSegment(from, to) {
     ctx.beginPath();
@@ -702,140 +659,11 @@
     applyFilterCommit();
     mode = 'draw';
     updateModeUI();
-    scheduleAutosave();
-  });
-
-  // --- Resize (corner drag) ---
-  resizeLockBtn.addEventListener('click', () => {
-    resizeLocked = !resizeLocked;
-    resizeLockBtn.classList.toggle('active', resizeLocked);
-  });
-
-  function positionResizeHandles() {
-    if (mode !== 'resize') return;
-    const rect = canvas.getBoundingClientRect();
-    const container = canvas.parentElement.getBoundingClientRect();
-    const offsetX = rect.left - container.left;
-    const offsetY = rect.top - container.top;
-
-    resizeHandles.style.left = offsetX + 'px';
-    resizeHandles.style.top = offsetY + 'px';
-    resizeHandles.style.width = rect.width + 'px';
-    resizeHandles.style.height = rect.height + 'px';
-  }
-
-  let resizeDragDir = null;
-  let resizeDragStartX = 0, resizeDragStartY = 0;
-  let resizeDragStartW = 0, resizeDragStartH = 0;
-
-  resizeHandles.addEventListener('mousedown', startResizeDrag);
-  resizeHandles.addEventListener('touchstart', startResizeDrag, { passive: false });
-
-  function startResizeDrag(e) {
-    const handle = e.target.closest('.resize-handle');
-    if (!handle) return;
-    e.preventDefault();
-    resizeDragDir = handle.dataset.dir;
-    const pos = e.touches ? e.touches[0] : e;
-    resizeDragStartX = pos.clientX;
-    resizeDragStartY = pos.clientY;
-    resizeDragStartW = canvas.width;
-    resizeDragStartH = canvas.height;
-
-    document.addEventListener('mousemove', moveResizeDrag);
-    document.addEventListener('mouseup', endResizeDrag);
-    document.addEventListener('touchmove', moveResizeDrag, { passive: false });
-    document.addEventListener('touchend', endResizeDrag);
-  }
-
-  function moveResizeDrag(e) {
-    if (!resizeDragDir) return;
-    e.preventDefault();
-    const pos = e.touches ? e.touches[0] : e;
-    let dx = pos.clientX - resizeDragStartX;
-    let dy = pos.clientY - resizeDragStartY;
-
-    // Invert for top/left handles
-    if (resizeDragDir.includes('w')) dx = -dx;
-    if (resizeDragDir.includes('n')) dy = -dy;
-
-    const container = canvas.parentElement;
-    const scaleX = resizeDragStartW / canvas.getBoundingClientRect().width;
-    const scaleY = resizeDragStartH / canvas.getBoundingClientRect().height;
-
-    let newW = Math.max(16, Math.round(resizeDragStartW + dx * scaleX));
-    let newH = Math.max(16, Math.round(resizeDragStartH + dy * scaleY));
-
-    if (resizeLocked) {
-      const aspect = resizeDragStartW / resizeDragStartH;
-      // Use the larger delta to drive both
-      if (Math.abs(dx) > Math.abs(dy)) {
-        newH = Math.max(16, Math.round(newW / aspect));
-      } else {
-        newW = Math.max(16, Math.round(newH * aspect));
-      }
-    }
-
-    resizePreviewW = newW;
-    resizePreviewH = newH;
-    resizeDimensions.textContent = `${newW} × ${newH}`;
-
-    // Live preview: resize the canvas display (CSS only, not the actual canvas buffer)
-    const maxW = container.clientWidth;
-    const maxH = container.clientHeight;
-    const displayScale = Math.min(maxW / newW, maxH / newH, 1);
-    canvas.style.width = (newW * displayScale) + 'px';
-    canvas.style.height = (newH * displayScale) + 'px';
-    positionResizeHandles();
-  }
-
-  function endResizeDrag() {
-    resizeDragDir = null;
-    document.removeEventListener('mousemove', moveResizeDrag);
-    document.removeEventListener('mouseup', endResizeDrag);
-    document.removeEventListener('touchmove', moveResizeDrag);
-    document.removeEventListener('touchend', endResizeDrag);
-  }
-
-  resizeApplyBtn.addEventListener('click', () => {
-    const newW = resizePreviewW;
-    const newH = resizePreviewH;
-    if (!newW || !newH || newW < 16 || newH < 16) return;
-
-    // Save undo snapshot
-    undoStack.push({
-      baseImageData: new ImageData(
-        new Uint8ClampedArray(baseImageData.data),
-        baseImageData.width,
-        baseImageData.height
-      ),
-      strokes: JSON.parse(JSON.stringify(strokes))
-    });
-
-    // Render current state to a temp canvas, then resize
-    replayStrokes();
-    const tmpCanvas = document.createElement('canvas');
-    tmpCanvas.width = canvas.width;
-    tmpCanvas.height = canvas.height;
-    tmpCanvas.getContext('2d').drawImage(canvas, 0, 0);
-
-    canvas.width = newW;
-    canvas.height = newH;
-    canvas.style.width = '';
-    canvas.style.height = '';
-    ctx.drawImage(tmpCanvas, 0, 0, tmpCanvas.width, tmpCanvas.height, 0, 0, newW, newH);
-    baseImageData = ctx.getImageData(0, 0, newW, newH);
-    strokes = [];
-
-    positionCropFrame();
-    positionResizeHandles();
-    showToast(`Resized to ${newW}×${newH}`, 'success');
-    scheduleAutosave();
   });
 
   // Undo
   undoBtn.addEventListener('click', () => {
-    if ((mode === 'mirror' || mode === 'filter' || mode === 'resize') && undoStack.length > 0) {
+    if (undoStack.length > 0 && strokes.length === 0) {
       const prev = undoStack.pop();
       baseImageData = prev.baseImageData;
       strokes = prev.strokes;
@@ -844,10 +672,6 @@
       replayStrokes();
       if (mode === 'mirror') applyKaleidPreview();
       if (mode === 'filter') applyFilterPreview();
-      if (mode === 'resize') {
-        resizeWidthInput.value = canvas.width;
-        resizeHeightInput.value = canvas.height;
-      }
       positionCropFrame();
       return;
     }
@@ -862,19 +686,12 @@
     eraserBtn.classList.toggle('active', isEraser);
   });
 
-  // Autosave — debounced, silent
-  let autosaveTimer = null;
-  let isSaving = false;
-
-  function scheduleAutosave() {
+  // Save
+  const saveBtn = document.getElementById('save-btn');
+  saveBtn.addEventListener('click', async () => {
     if (!currentImage) return;
-    if (autosaveTimer) clearTimeout(autosaveTimer);
-    autosaveTimer = setTimeout(doAutosave, 1000);
-  }
-
-  async function doAutosave() {
-    if (!currentImage || isSaving) return;
-    isSaving = true;
+    saveBtn.textContent = 'Saving\u2026';
+    saveBtn.disabled = true;
 
     try {
       const handle = editorHandleInput ? editorHandleInput.value.trim().replace(/^@/, '') : '';
@@ -900,15 +717,27 @@
         headers: { 'x-client-id': localStorage.getItem('lgtm-client-id') || '' }
       });
 
-      if (res.ok) {
-        const result = await res.json();
-        if (result.filename) {
-          currentImage.url = '/uploads/' + result.filename;
-        }
-        window.reloadGallery();
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(err.error);
       }
-    } catch {}
-    isSaving = false;
-  }
+
+      const result = await res.json();
+      if (result.filename) {
+        currentImage.url = '/uploads/' + result.filename;
+      }
+
+      saveBtn.textContent = 'Saved!';
+      setTimeout(() => {
+        saveBtn.textContent = 'Save';
+        saveBtn.disabled = false;
+      }, 1000);
+      window.reloadGallery();
+    } catch (err) {
+      showToast('Save failed: ' + err.message, 'error');
+      saveBtn.textContent = 'Save';
+      saveBtn.disabled = false;
+    }
+  });
 
 })();

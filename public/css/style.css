@@ -871,6 +871,21 @@ header h1 .accent {
   position: relative;
 }
 
+.editor-save-row {
+  display: flex;
+  justify-content: center;
+  padding: 12px 16px;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.editor-save-row .tool-btn {
+  width: 100%;
+  max-width: 400px;
+  padding: 14px 24px;
+  font-size: 16px;
+}
+
 #draw-canvas {
   max-width: 100%;
   max-height: 100%;
