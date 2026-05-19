@@ -44,6 +44,7 @@
     progressBar.hidden = false;
     let done = 0;
     let lastUploaded = null;
+    const localFile = files.length === 1 ? files[0] : null;
 
     for (const file of files) {
       const form = new FormData();
@@ -69,11 +70,15 @@
 
     // Auto-open editor for single uploads
     if (files.length === 1 && lastUploaded && window.openEditor) {
-      const imgRes = await fetch(`/api/images/${lastUploaded.id}`);
-      if (imgRes.ok) {
-        const imgData = await imgRes.json();
-        window.openEditor(imgData);
-      }
+      const imgData = {
+        id: lastUploaded.id,
+        filename: lastUploaded.filename,
+        url: localFile ? URL.createObjectURL(localFile) : `/uploads/${lastUploaded.filename}`,
+        originalName: localFile ? localFile.name : lastUploaded.filename,
+        handle: null,
+        caption: null
+      };
+      window.openEditor(imgData);
     }
   }
 

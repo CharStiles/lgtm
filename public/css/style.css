@@ -903,6 +903,19 @@ header h1 .accent {
   box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
 }
 
+.editor-loader {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-body);
+  font-size: 16px;
+  color: var(--color-text-muted);
+  z-index: 5;
+}
+
+.editor-loader[hidden] { display: none; }
+
 /* ===== Toast ===== */
 .toast {
   position: fixed;

@@ -111,12 +111,31 @@
     undoStack = [];
     updateModeUI();
 
+    // Show loading state
+    canvas.style.opacity = '0.3';
+    let loader = document.getElementById('editor-loader');
+    if (!loader) {
+      loader = document.createElement('div');
+      loader.id = 'editor-loader';
+      loader.className = 'editor-loader';
+      loader.textContent = 'Loading...';
+      canvas.parentElement.appendChild(loader);
+    }
+    loader.hidden = false;
+
     // Pre-fill caption from image data
     if (editorCaptionInput) editorCaptionInput.value = imgData.caption || '';
 
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+    if (!imgData.url.startsWith('blob:')) {
+      img.crossOrigin = 'anonymous';
+    }
     img.onload = () => {
+      // Hide loading state
+      canvas.style.opacity = '1';
+      const loader = document.getElementById('editor-loader');
+      if (loader) loader.hidden = true;
+
       fullImage = img;
       const container = canvas.parentElement;
       const maxW = container.clientWidth;
@@ -146,6 +165,11 @@
       filterLevels.value = '4';
       updateModeUI();
       applyFilterPreview();
+    };
+    img.onerror = () => {
+      canvas.style.opacity = '1';
+      const loader = document.getElementById('editor-loader');
+      if (loader) loader.textContent = 'Failed to load image';
     };
     img.src = imgData.url;
   };
