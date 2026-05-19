@@ -705,15 +705,45 @@
         ctx.putImageData(filtered, 0, 0);
       }
 
-      // Export at the pinch-scaled size
+      // Export the visible crop region (what's inside the crop frame)
       let exportCanvas = canvas;
-      if (Math.abs(currentScale - 1) > 0.01) {
-        const scaledW = Math.round(canvas.width * currentScale);
-        const scaledH = Math.round(canvas.height * currentScale);
+      if (Math.abs(currentScale - 1) > 0.01 || Math.abs(translateX) > 1 || Math.abs(translateY) > 1) {
+        const container = canvas.parentElement;
+        const contW = container.clientWidth;
+        const contH = container.clientHeight;
+
+        // Canvas natural size in CSS pixels (before transform)
+        const natW = canvas.offsetWidth;
+        const natH = canvas.offsetHeight;
+
+        // The canvas is centered in container, then transform applied
+        const canvasLeftInContainer = (contW - natW) / 2 + translateX;
+        const canvasTopInContainer = (contH - natH) / 2 + translateY;
+
+        // Visible region in CSS pixels relative to canvas origin
+        const visLeft = -canvasLeftInContainer / currentScale;
+        const visTop = -canvasTopInContainer / currentScale;
+        const visW = contW / currentScale;
+        const visH = contH / currentScale;
+
+        // Convert CSS coords to canvas buffer coords
+        const bufferRatioX = canvas.width / natW;
+        const bufferRatioY = canvas.height / natH;
+
+        const sx = Math.max(0, visLeft * bufferRatioX);
+        const sy = Math.max(0, visTop * bufferRatioY);
+        const sw = Math.min(canvas.width - sx, visW * bufferRatioX);
+        const sh = Math.min(canvas.height - sy, visH * bufferRatioY);
+
+        // Export as square (crop frame is square)
+        const side = Math.min(sw, sh);
+        const cropX = sx + (sw - side) / 2;
+        const cropY = sy + (sh - side) / 2;
+
         exportCanvas = document.createElement('canvas');
-        exportCanvas.width = scaledW;
-        exportCanvas.height = scaledH;
-        exportCanvas.getContext('2d').drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, scaledW, scaledH);
+        exportCanvas.width = Math.round(side);
+        exportCanvas.height = Math.round(side);
+        exportCanvas.getContext('2d').drawImage(canvas, cropX, cropY, side, side, 0, 0, Math.round(side), Math.round(side));
       }
 
       const blob = await new Promise(r => exportCanvas.toBlob(r, 'image/png'));
