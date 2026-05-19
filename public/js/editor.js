@@ -4,7 +4,6 @@
   const canvas = document.getElementById('draw-canvas');
   const ctx = canvas.getContext('2d');
   const backBtn = document.getElementById('editor-back');
-  const saveBtn = document.getElementById('save-btn');
   const undoBtn = document.getElementById('undo-btn');
   const eraserBtn = document.getElementById('eraser-btn');
   const colorInput = document.getElementById('brush-color');
@@ -60,6 +59,8 @@
   const editorCaptionInput = document.getElementById('editor-caption');
   const savedHandle = localStorage.getItem('lgtm-handle');
   if (editorHandleInput && savedHandle) editorHandleInput.value = savedHandle;
+  if (editorHandleInput) editorHandleInput.addEventListener('input', () => scheduleAutosave());
+  if (editorCaptionInput) editorCaptionInput.addEventListener('input', () => scheduleAutosave());
   let mode = 'draw'; // 'draw', 'mirror', 'filter', or 'resize'
   let resizeLocked = true; // aspect ratio lock
   let resizePreviewW = 0, resizePreviewH = 0; // dimensions while dragging
@@ -160,6 +161,12 @@
   };
 
   function closeEditor() {
+    // Flush pending autosave before clearing state
+    if (autosaveTimer) {
+      clearTimeout(autosaveTimer);
+      autosaveTimer = null;
+    }
+    if (currentImage) doAutosave();
     overlay.hidden = true;
     document.body.style.overflow = '';
     currentImage = null;
@@ -368,12 +375,14 @@
     baseImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     strokes = [];
     bakeFullImage();
+    scheduleAutosave();
   });
 
   // Drawing & panning — unified mouse/touch
   let pinchStartDist = 0;
   let pinchStartW = 0, pinchStartH = 0;
   let isPinching = false;
+  let pinchJustEnded = false; // guard against single-finger events after pinch
 
   function getTouchDist(e) {
     const t = e.touches;
@@ -398,6 +407,12 @@
 
   function startInteraction(e) {
     e.preventDefault();
+
+    // Ignore single-finger start right after a pinch (finger still down)
+    if (pinchJustEnded) {
+      pinchJustEnded = false;
+      return;
+    }
 
     // Two-finger touch = pinch to resize
     if (e.touches && e.touches.length >= 2) {
@@ -444,6 +459,9 @@
       return;
     }
 
+    // If pinching but only one finger left, ignore movement
+    if (isPinching) return;
+
     if (isPanning) {
       movePan(e);
       return;
@@ -465,7 +483,10 @@
 
   function endInteraction(e) {
     if (isPinching) {
+      // If fingers still touching, don't commit yet
+      if (e.touches && e.touches.length > 0) return;
       isPinching = false;
+      pinchJustEnded = true;
       // Commit the pinch resize
       const newW = resizePreviewW;
       const newH = resizePreviewH;
@@ -493,6 +514,7 @@
         baseImageData = ctx.getImageData(0, 0, newW, newH);
         strokes = [];
         positionCropFrame();
+        scheduleAutosave();
       } else {
         canvas.style.width = '';
         canvas.style.height = '';
@@ -512,6 +534,7 @@
       if (currentStroke.length > 0) {
         strokes.push([...currentStroke]);
         currentStroke = [];
+        scheduleAutosave();
       }
     }
   }
@@ -679,6 +702,7 @@
     applyFilterCommit();
     mode = 'draw';
     updateModeUI();
+    scheduleAutosave();
   });
 
   // --- Resize (corner drag) ---
@@ -806,6 +830,7 @@
     positionCropFrame();
     positionResizeHandles();
     showToast(`Resized to ${newW}×${newH}`, 'success');
+    scheduleAutosave();
   });
 
   // Undo
@@ -837,14 +862,21 @@
     eraserBtn.classList.toggle('active', isEraser);
   });
 
-  // Save
-  saveBtn.addEventListener('click', async () => {
+  // Autosave — debounced, silent
+  let autosaveTimer = null;
+  let isSaving = false;
+
+  function scheduleAutosave() {
     if (!currentImage) return;
-    saveBtn.textContent = 'Saving\u2026';
-    saveBtn.disabled = true;
+    if (autosaveTimer) clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(doAutosave, 1000);
+  }
+
+  async function doAutosave() {
+    if (!currentImage || isSaving) return;
+    isSaving = true;
 
     try {
-      // Save handle to localStorage
       const handle = editorHandleInput ? editorHandleInput.value.trim().replace(/^@/, '') : '';
       const caption = editorCaptionInput ? editorCaptionInput.value.trim() : '';
       if (handle) localStorage.setItem('lgtm-handle', handle);
@@ -855,7 +887,6 @@
         ctx.putImageData(filtered, 0, 0);
       }
 
-      // Save the flattened canvas as a new image
       const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
       const file = new File([blob], 'edited.png', { type: 'image/png' });
       const form = new FormData();
@@ -863,36 +894,21 @@
       if (handle) form.append('handle', handle);
       if (caption) form.append('caption', caption);
 
-      // Upload the edited version, replacing the original
       const res = await fetch(`/api/canvas/${currentImage.id}`, {
         method: 'POST',
         body: form,
         headers: { 'x-client-id': localStorage.getItem('lgtm-client-id') || '' }
       });
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(err.error);
+      if (res.ok) {
+        const result = await res.json();
+        if (result.filename) {
+          currentImage.url = '/uploads/' + result.filename;
+        }
+        window.reloadGallery();
       }
-
-      // Update currentImage so subsequent saves use the new filename
-      const result = await res.json();
-      if (result.filename) {
-        currentImage.url = '/uploads/' + result.filename;
-      }
-
-      showToast('Saved!', 'success');
-      saveBtn.textContent = 'Saved!';
-      setTimeout(() => {
-        saveBtn.textContent = 'Save';
-        saveBtn.disabled = false;
-      }, 1000);
-      window.reloadGallery();
-    } catch (err) {
-      showToast('Save failed: ' + err.message, 'error');
-      saveBtn.textContent = 'Save';
-      saveBtn.disabled = false;
-    }
-  });
+    } catch {}
+    isSaving = false;
+  }
 
 })();
