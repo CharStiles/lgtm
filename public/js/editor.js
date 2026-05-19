@@ -57,6 +57,7 @@
 
   // Handle input in editor
   const editorHandleInput = document.getElementById('editor-handle');
+  const editorCaptionInput = document.getElementById('editor-caption');
   const savedHandle = localStorage.getItem('lgtm-handle');
   if (editorHandleInput && savedHandle) editorHandleInput.value = savedHandle;
   let mode = 'draw'; // 'draw', 'mirror', 'filter', or 'resize'
@@ -118,6 +119,9 @@
     mode = 'draw';
     undoStack = [];
     updateModeUI();
+
+    // Pre-fill caption from image data
+    if (editorCaptionInput) editorCaptionInput.value = imgData.caption || '';
 
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -367,6 +371,17 @@
   });
 
   // Drawing & panning — unified mouse/touch
+  let pinchStartDist = 0;
+  let pinchStartW = 0, pinchStartH = 0;
+  let isPinching = false;
+
+  function getTouchDist(e) {
+    const t = e.touches;
+    const dx = t[0].clientX - t[1].clientX;
+    const dy = t[0].clientY - t[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
   function getPos(e) {
     const rect = canvas.getBoundingClientRect();
     const touch = e.touches ? e.touches[0] : e;
@@ -384,9 +399,13 @@
   function startInteraction(e) {
     e.preventDefault();
 
-    // Two-finger touch = always pan
+    // Two-finger touch = pinch to resize
     if (e.touches && e.touches.length >= 2) {
-      startPan(e);
+      isPinching = true;
+      isDrawing = false;
+      pinchStartDist = getTouchDist(e);
+      pinchStartW = canvas.width;
+      pinchStartH = canvas.height;
       return;
     }
 
@@ -406,9 +425,22 @@
   }
 
   function moveInteraction(e) {
-    // Two-finger touch = always pan
-    if (e.touches && e.touches.length >= 2) {
-      movePan(e);
+    // Two-finger touch = pinch to resize
+    if (e.touches && e.touches.length >= 2 && isPinching) {
+      e.preventDefault();
+      const dist = getTouchDist(e);
+      const scale = dist / pinchStartDist;
+      const newW = Math.max(16, Math.round(pinchStartW * scale));
+      const newH = Math.max(16, Math.round(pinchStartH * scale));
+
+      const container = canvas.parentElement;
+      const maxW = container.clientWidth;
+      const maxH = container.clientHeight;
+      const displayScale = Math.min(maxW / newW, maxH / newH, 1);
+      canvas.style.width = (newW * displayScale) + 'px';
+      canvas.style.height = (newH * displayScale) + 'px';
+      resizePreviewW = newW;
+      resizePreviewH = newH;
       return;
     }
 
@@ -432,6 +464,42 @@
   }
 
   function endInteraction(e) {
+    if (isPinching) {
+      isPinching = false;
+      // Commit the pinch resize
+      const newW = resizePreviewW;
+      const newH = resizePreviewH;
+      if (newW && newH && (newW !== canvas.width || newH !== canvas.height)) {
+        undoStack.push({
+          baseImageData: new ImageData(
+            new Uint8ClampedArray(baseImageData.data),
+            baseImageData.width,
+            baseImageData.height
+          ),
+          strokes: JSON.parse(JSON.stringify(strokes))
+        });
+
+        replayStrokes();
+        const tmpCanvas = document.createElement('canvas');
+        tmpCanvas.width = canvas.width;
+        tmpCanvas.height = canvas.height;
+        tmpCanvas.getContext('2d').drawImage(canvas, 0, 0);
+
+        canvas.width = newW;
+        canvas.height = newH;
+        canvas.style.width = '';
+        canvas.style.height = '';
+        ctx.drawImage(tmpCanvas, 0, 0, tmpCanvas.width, tmpCanvas.height, 0, 0, newW, newH);
+        baseImageData = ctx.getImageData(0, 0, newW, newH);
+        strokes = [];
+        positionCropFrame();
+      } else {
+        canvas.style.width = '';
+        canvas.style.height = '';
+      }
+      return;
+    }
+
     if (isPanning) {
       endPan();
       return;
@@ -778,6 +846,7 @@
     try {
       // Save handle to localStorage
       const handle = editorHandleInput ? editorHandleInput.value.trim().replace(/^@/, '') : '';
+      const caption = editorCaptionInput ? editorCaptionInput.value.trim() : '';
       if (handle) localStorage.setItem('lgtm-handle', handle);
 
       // If in filter mode, commit the filter preview before capturing
@@ -792,6 +861,7 @@
       const form = new FormData();
       form.append('image', file);
       if (handle) form.append('handle', handle);
+      if (caption) form.append('caption', caption);
 
       // Upload the edited version, replacing the original
       const res = await fetch(`/api/canvas/${currentImage.id}`, {

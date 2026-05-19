@@ -122,6 +122,7 @@ app.post('/api/canvas/:id', uploadCanvas.single('image'), (req, res) => {
   data.filename = req.file.filename;
   data.drawings = null; // drawings are baked in now
   if (req.body.handle) data.handle = req.body.handle;
+  if (req.body.caption !== undefined) data.caption = req.body.caption || null;
   saveMeta(meta);
 
   res.json({ ok: true, filename: req.file.filename });

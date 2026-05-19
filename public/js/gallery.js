@@ -43,6 +43,7 @@
     if (!files.length) return;
     progressBar.hidden = false;
     let done = 0;
+    let lastUploaded = null;
 
     for (const file of files) {
       const form = new FormData();
@@ -52,6 +53,8 @@
         if (!res.ok) {
           const err = await res.json();
           alert(`Upload failed: ${err.error}`);
+        } else {
+          lastUploaded = await res.json();
         }
       } catch {
         alert('Upload failed \u2014 check your connection');
@@ -63,6 +66,15 @@
     progressBar.hidden = true;
     progressFill.style.width = '0%';
     loadImages();
+
+    // Auto-open editor for single uploads
+    if (files.length === 1 && lastUploaded && window.openEditor) {
+      const imgRes = await fetch(`/api/images/${lastUploaded.id}`);
+      if (imgRes.ok) {
+        const imgData = await imgRes.json();
+        window.openEditor(imgData);
+      }
+    }
   }
 
   // Wire both file inputs
@@ -118,7 +130,7 @@
     if (!images.length) {
       gallery.innerHTML = `
         <div class="empty-state">
-          <span class="empty-state-icon">🇵🇹</span>
+          <span class="empty-state-icon"></span>
           <p class="empty-state-title">The tile wall is empty</p>
           <p class="empty-state-description">Walk around Lisbon, snap photos of great design, and turn them into Portuguese tile prints.</p>
         </div>`;
@@ -132,12 +144,12 @@
       return `
       <div class="tile" data-id="${img.id}">
         <img src="${img.url}" alt="${img.originalName}" loading="lazy" width="400" height="400">
-        ${img.handle ? `<div class="tile-handle">@${img.handle}</div>` : ''}
-        <div class="tile-actions">
-          ${owned ? `<button class="tile-btn edit-btn" data-id="${img.id}">✏️ Edit</button>` : ''}
-          <button class="tile-btn download-btn" data-url="${img.url}" data-name="${img.originalName}">📥 Save</button>
-          ${owned ? `<button class="tile-btn delete-btn" data-id="${img.id}">🗑</button>` : ''}
-        </div>
+        ${img.handle || img.caption ? `<div class="tile-meta">${img.handle ? `<span class="tile-handle">@${img.handle}</span>` : ''}${img.caption ? `<span class="tile-caption">${img.caption}</span>` : ''}</div>` : ''}
+        ${owned ? `<div class="tile-actions">
+          <button class="tile-btn edit-btn" data-id="${img.id}">Edit</button>
+          <button class="tile-btn download-btn" data-url="${img.url}" data-name="${img.originalName}">Save</button>
+          <button class="tile-btn delete-btn" data-id="${img.id}">Delete</button>
+        </div>` : ''}
       </div>`;
     }).join('');
 

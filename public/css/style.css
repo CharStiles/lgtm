@@ -1,7 +1,15 @@
 /* ===== Design Tokens ===== */
+@font-face {
+  font-family: 'Lisbon CG';
+  src: url('/font/Lisbon CG Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
-  --color-bg: #FFFFFF;
-  --color-surface: #FFFFFF;
+  --color-bg: #F9F8F6;
+  --color-surface: #F9F8F6;
   --color-azulejo: #1A5C8A;
   --color-azulejo-light: #E8F0F7;
   --color-azulejo-dark: #134163;
@@ -14,8 +22,8 @@
   --color-border: #D1D9E0;
   --color-border-subtle: #E8ECF0;
   --color-overlay: rgba(0, 0, 0, 0.5);
-  --font-body: 'Mona Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-  --font-display: 'DM Serif Display', Georgia, serif;
+  --font-body: 'Lisbon CG', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --font-display: 'Lisbon CG', Georgia, serif;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -326,6 +334,24 @@ header h1 .accent {
   box-shadow: 0 0 0 3px rgba(245, 197, 24, 0.2);
 }
 
+.editor-handle-row .caption-input {
+  width: 160px;
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  outline: none;
+  margin-left: 6px;
+}
+
+.editor-handle-row .caption-input:focus {
+  border-color: var(--color-yellow);
+  box-shadow: 0 0 0 3px rgba(245, 197, 24, 0.2);
+}
+
 /* Handle input (upload zone - removed, kept for shared styles) */
 
 .upload-drop {
@@ -499,11 +525,31 @@ header h1 .accent {
   opacity: 1;
 }
 
-.tile:hover .tile-handle {
+.tile:hover .tile-handle,
+.tile:hover .tile-meta {
   opacity: 1;
 }
 
-/* Handle overlay on tiles */
+/* Handle/caption overlay on tiles */
+.tile-meta {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.tile-meta .tile-handle,
+.tile-meta .tile-caption {
+  position: static;
+  opacity: 1;
+}
+
 .tile-handle {
   position: absolute;
   top: 8px;
@@ -523,11 +569,25 @@ header h1 .accent {
   z-index: 2;
 }
 
+.tile-caption {
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 400;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+}
+
 @media (hover: none) {
   .tile-actions {
     opacity: 1;
   }
-  .tile-handle {
+  .tile-handle,
+  .tile-meta {
     opacity: 1;
   }
 }
@@ -668,6 +728,8 @@ header h1 .accent {
   flex: 1;
   justify-content: center;
 }
+
+.brush-controls[hidden] { display: none; }
 
 .mirror-controls {
   display: flex;

@@ -7,8 +7,6 @@
   <title>Capture Lisbon · LGTM Offsite 2026</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/@fontsource/mona-sans@5/index.min.css" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -143,7 +141,7 @@
   <section class="upload-zone">
     <div class="upload-label">Your photo</div>
     <div class="upload-drop" id="upload-drop-area">
-      <div class="upload-icon">📸</div>
+      <div class="upload-icon">+</div>
       <h3>Drop your Lisboa photo here</h3>
       <p>Tiles, street art, pastries, architecture — anything goes</p>
       <div class="or">or</div>
@@ -163,7 +161,6 @@
   <section class="gallery-section">
     <div class="gallery-header">
       <div class="gallery-title">
-        <span class="live-dot"></span>
         Team Gallery
       </div>
       <span class="gallery-sub">Auto-updates</span>
@@ -208,17 +205,18 @@
       </div>
       <div id="resize-controls" class="resize-controls" hidden>
         <span id="resize-dimensions" class="resize-dimensions"></span>
-        <button id="resize-lock" class="tool-btn active" title="Lock aspect ratio">🔗</button>
+        <button id="resize-lock" class="tool-btn active" title="Lock aspect ratio">Lock</button>
         <button id="resize-apply" class="tool-btn save">Apply</button>
       </div>
       <div class="editor-actions">
         <div class="editor-handle-row">
           <label for="editor-handle" class="handle-label">@</label>
           <input type="text" id="editor-handle" class="handle-input" placeholder="your handle" autocomplete="username" spellcheck="false" maxlength="39">
+          <input type="text" id="editor-caption" class="caption-input" placeholder="caption" spellcheck="false" maxlength="140">
         </div>
         <button id="undo-btn" class="tool-btn">Undo</button>
         <button id="save-btn" class="tool-btn save">Save</button>
-        <button id="download-btn" class="tool-btn" title="Save to camera roll">📥</button>
+        <button id="download-btn" class="tool-btn" title="Save to camera roll">Download</button>
       </div>
     </div>
     <div class="canvas-container">
