@@ -261,18 +261,22 @@
   }
 
   modeDrawBtn.addEventListener('click', () => {
+    if (mode === 'filter') applyFilterCommit();
+    if (mode === 'mirror') applyKaleidCommit();
     mode = 'draw';
     updateModeUI();
     replayStrokes();
   });
 
   modeMirrorBtn.addEventListener('click', () => {
+    if (mode === 'filter') applyFilterCommit();
     mode = 'mirror';
     updateModeUI();
     applyKaleidPreview();
   });
 
   modeFilterBtn.addEventListener('click', () => {
+    if (mode === 'mirror') applyKaleidCommit();
     mode = 'filter';
     updateModeUI();
     // Show live preview
@@ -360,7 +364,7 @@
     }
   }
 
-  kaleidApply.addEventListener('click', () => {
+  function applyKaleidCommit() {
     // Save undo snapshot
     undoStack.push({
       baseImageData: new ImageData(
@@ -376,6 +380,10 @@
     baseImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     strokes = [];
     bakeFullImage();
+  }
+
+  kaleidApply.addEventListener('click', () => {
+    applyKaleidCommit();
   });
 
   // Drawing & gestures — pointer events for pinch-to-scale everywhere
@@ -705,6 +713,12 @@
         ctx.putImageData(filtered, 0, 0);
       }
 
+      // If in mirror mode, commit the kaleidoscope preview before capturing
+      if (mode === 'mirror') {
+        const segments = parseInt(kaleidSegments.value);
+        renderKaleidoscope(segments, true);
+      }
+
       // Export the visible crop region (what's inside the crop frame)
       let exportCanvas = canvas;
       if (Math.abs(currentScale - 1) > 0.01 || Math.abs(translateX) > 1 || Math.abs(translateY) > 1) {
@@ -716,13 +730,11 @@
         const natW = canvas.offsetWidth;
         const natH = canvas.offsetHeight;
 
-        // The canvas is centered in container, then transform applied
-        const canvasLeftInContainer = (contW - natW) / 2 + translateX;
-        const canvasTopInContainer = (contH - natH) / 2 + translateY;
-
-        // Visible region in CSS pixels relative to canvas origin
-        const visLeft = -canvasLeftInContainer / currentScale;
-        const visTop = -canvasTopInContainer / currentScale;
+        // With transform-origin: center center, a container point maps to
+        // canvas CSS coord: x = natW/2 - (contW/2 + tx)/s + container_x/s
+        // Visible left edge (container_x=0):
+        const visLeft = natW / 2 - (contW / 2 + translateX) / currentScale;
+        const visTop = natH / 2 - (contH / 2 + translateY) / currentScale;
         const visW = contW / currentScale;
         const visH = contH / currentScale;
 
